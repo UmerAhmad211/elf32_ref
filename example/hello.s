@@ -1,5 +1,5 @@
 section .data
-	msg db "Hello, world!", Ah  
+	msg db "Hello, world!", 0xA 
 	len dd 14                    
 
 section .text
