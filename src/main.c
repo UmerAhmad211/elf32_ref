@@ -1,8 +1,19 @@
 #include <elf.h>
+#include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+void write_to_file(const void *data, FILE *file_w, const size_t sz,
+		   const char *if_err_msg)
+{
+	if (fwrite(data, 1, sz, file_w) != sz) {
+		perror(if_err_msg);
+		fclose(file_w);
+		exit(EXIT_FAILURE);
+	}
+}
 
 int main(int argc, char *argv[])
 {
@@ -68,52 +79,23 @@ int main(int argc, char *argv[])
 		exit(EXIT_FAILURE);
 	}
 
-	size_t sz = fwrite(&header, 1, sizeof(header), file_w);
-	if (sz != sizeof(header)) {
-		perror("Error: Failed to write ELF header.");
-		exit(EXIT_FAILURE);
-	}
-
-	sz = fwrite(&phdr_txt, 1, sizeof(phdr_txt), file_w);
-	if (sz != sizeof(phdr_txt)) {
-		perror("Error: Failed to write ELF program header for text.");
-		exit(EXIT_FAILURE);
-	}
-
-	sz = fwrite(&phdr_data, 1, sizeof(phdr_data), file_w);
-	if (sz != sizeof(phdr_data)) {
-		perror("Error: Failed to write ELF program header for data.");
-		exit(EXIT_FAILURE);
-	}
-
+	write_to_file(&header, file_w, sizeof(header),
+		      "Error: Failed to write ELF header.");
+	write_to_file(&phdr_txt, file_w, sizeof(phdr_txt),
+		      "Error: Failed to write ELF program header for text.");
+	write_to_file(&phdr_data, file_w, sizeof(phdr_data),
+		      "Error: Failed to write ELF program header for data.");
 	// 0x1000 - 0x32 - 0x20 - 0x20
 	uint8_t pad[0x0f8c] = { 0 };
-	sz = fwrite(pad, 1, 0xf8c, file_w);
-	if (sz != 0x0f8c) {
-		perror("Error: Failed to write pad.");
-		return EXIT_FAILURE;
-	}
-
-	sz = fwrite(objcode, 1, sizeof(objcode), file_w);
-	if (sz != sizeof(objcode)) {
-		perror("Error: Failed to write text.");
-		exit(EXIT_FAILURE);
-	}
-
+	write_to_file(pad, file_w, sizeof(pad), "Error: Failed to write pad.");
+	write_to_file(objcode, file_w, sizeof(objcode),
+		      "Error: Failed to write text.");
 	// 0x2000 - 0x1020
 	uint8_t pad_2[0xfe0] = { 0 };
-	sz = fwrite(pad_2, 1, 0xfe0, file_w);
-	if (sz != 0xfe0) {
-		perror("Error: Failed to write pad.");
-		return EXIT_FAILURE;
-	}
-
-	sz = fwrite(data, 1, sizeof(data), file_w);
-	if (sz != sizeof(data)) {
-		perror("Error: Failed to write data.");
-		exit(EXIT_FAILURE);
-	}
-
+	write_to_file(pad_2, file_w, sizeof(pad_2),
+		      "Error: Failed to write pad.");
+	write_to_file(data, file_w, sizeof(data),
+		      "Error: Failed to write data.");
 	fclose(file_w);
 
 	return EXIT_SUCCESS;
